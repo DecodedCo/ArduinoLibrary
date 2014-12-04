@@ -1,0 +1,10 @@
+Decoded KEYWORD1
+addLed KEYWORD2
+addButton KEYWORD2
+addKnob KEYWORD2
+addServo KEYWORD2
+setServo KEYWORD2
+ledOn KEYWORD2
+ledOff KEYWORD2
+isButtonPressed KEYWORD2
+readKnob KEYWORD2
