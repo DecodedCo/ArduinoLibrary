@@ -3,35 +3,43 @@
 #include "Decoded.h"
 #define DHTTYPE DHT11 
 
+byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+char server[] = "www.oliverrees.co.uk";
+// IPAddress server(54,217,228,120);
+IPAddress ip(192,168,0,177);
+EthernetClient client;
+SoftwareSerial *rfid;
+char *value;
 /* Decoded library for controlling external peripherals for TiaD */
-Decoded::Decoded(){
-	readyToSend = false;
-	res = new char[13];
-	successPin = 8;
-	failPin = 9;
-	pinMode(successPin, OUTPUT);
-	pinMode(failPin, OUTPUT);
-	digitalWrite(successPin, LOW);
-	digitalWrite(failPin, LOW);
-	value = "";
+Decoded::Decoded(HardwareSerial &print, uint8_t failLed) : failPin(failLed) {
+	// readyToSend = false;
+	// res = new char[13];
+	// successPin = 8;
+	// failPin = 9;
+	// pinMode(successPin, OUTPUT);
+	// pinMode(failPin, OUTPUT);
+	// digitalWrite(successPin, LOW);
+	// digitalWrite(failPin, LOW);
+	// value = "";
+	printer = &print; //operate on the adress of print
+	temperatureSent = false;
+     // printer->begin(9600);
 }
-void Decoded::addLed(int pin){
+
+void Decoded::addLed(uint8_t pin){
 	 pinMode(pin, OUTPUT);
-	 Serial.println(F("led setup"));
+	 printer->println(F("led setup"));
 }
-void Decoded::ledOn(int pin){
-	digitalWrite(ledPin, HIGH);
+void Decoded::ledOn(uint8_t pin){
+	digitalWrite(pin, HIGH);
 }
-void Decoded::ledOff(int pin){
-	digitalWrite(ledPin, LOW);
+void Decoded::ledOff(uint8_t pin){
+	digitalWrite(pin, LOW);
 }
-void Decoded::setLed(int pin, bool set){
-	digitalWrite(ledPin, set);
+void Decoded::setLed(uint8_t pin, bool set){
+	digitalWrite(pin, set);
 }
-void Decoded::addButton(int pin) {
-	pinMode(pin, INPUT);
-	Serial.println(F("button setup"));
-}
+/*
 void Decoded::addServo(int pin){
 	servo.attach(pin);  
 	Serial.println(F("Servo setup"));
@@ -39,12 +47,100 @@ void Decoded::addServo(int pin){
 void Decoded::setServo(int pin, int angle){
 	servo.write(angle);
 }
-void Decoded::addTemperatureAndHumidity(int pin) {
+*/
+void Decoded::addButton(uint8_t pin) {
+	pinMode(pin, INPUT);
+	printer->println(F("button setup"));
+}
+bool Decoded::isButtonPressed(uint8_t pin){ //is it boolean or bool???
+	
+	return (digitalRead(pin) == HIGH) ? true : false;
+}
+int Decoded::readFlameSensor(uint8_t flamePin) {
+	return analogRead(flamePin);
+}
+bool Decoded::checkFlameSensor(uint8_t flamePin, int tolerance) {
+	if (analogRead(flamePin) < tolerance) {
+		flameSent = false;
+	}
+	if (flameSent) {
+		return false;
+	}
+	if (analogRead(flamePin) > tolerance) {
+		printer->println("flame TRUE");
+		flameSent = true;
+		return true;
+	}
+	return false;
+}
+int Decoded::readTouchSensor(uint8_t touchPin) {
+	return analogRead(touchPin);
+}
+bool Decoded::checkTouchSensor(uint8_t touchPin, int tolerance) {
+	if (analogRead(touchPin) > tolerance) {
+		touchSent = false;
+	}
+	if (touchSent) {
+		return false;
+	}
+	if (analogRead(touchPin) < tolerance) {
+		printer->println("touch TRUE");
+		touchSent = true;
+		return true;
+	}
+	return false;
+}
+int Decoded::readKnockSensor(uint8_t knockPin) {
+	return analogRead(knockPin);
+}
+bool Decoded::checkKnockSensor(uint8_t knockPin, int tolerance) {
+	if (analogRead(knockPin) > tolerance) {
+		touchSent = false;
+	}
+	if (touchSent) {
+		return false;
+	}
+	if (analogRead(knockPin) < tolerance) {
+		printer->println("touch TRUE");
+		touchSent = true;
+		return true;
+	}
+	return false;
+}
+
+void Decoded::addTiltSensor(uint8_t tiltPin) {
+	pinMode(tiltPin, INPUT);
+}
+bool Decoded::checkIfTilted(uint8_t tiltPin) {
+	if (digitalRead(tiltPin) == HIGH) {
+		return true;
+	}
+	return false;
+}
+int Decoded::readJoyStick(uint8_t x) {
+	return analogRead(x);
+}
+void Decoded::addTemperatureAndHumidity(uint8_t pin) {
 	dht = new DHT(pin, DHTTYPE);
 	dht->begin();
 }
 float Decoded::getCelsius(){
 	return dht->readTemperature();
+}
+bool Decoded::checkCelsius(float tolerance) {
+	if (dht->readTemperature() < tolerance) {
+		temperatureSent = false;
+	}
+	if (temperatureSent) {
+		return false;
+	}
+	if (dht->readTemperature() > tolerance) {
+		temperatureSent = true;
+		printer->println("temperature check TRUE");
+		return true;
+	}
+	return false;
+
 }
 float Decoded::getFarenheit(){
 	return dht->readTemperature(true);
@@ -52,98 +148,90 @@ float Decoded::getFarenheit(){
 float Decoded::getHumidity(){
 	dht->readHumidity();
 }
+/*
 int Decoded::readPotentiometer(int pin, int min, int max) { //return a value between 0 and 180 (servo angles)
   return map(analogRead(knobPin), 0, 1023, min, max); 
 }
-bool Decoded::isButtonPressed(int pin){ //is it boolean or bool???
-	
-	return (digitalRead(buttonPin) == HIGH) ? true : false;
-}
-void Decoded::addRFID(int pin) {
-	rfid = new SoftwareSerial(pin, 4);
+*/
+
+void Decoded::addRFID(uint8_t pin){
+	rfid = new SoftwareSerial(pin, 100);
 	rfid->begin(9600);
+	printer->println("RFID configured");
 }
+
 char *Decoded::checkForRFID(){
+
 		int8_t len = 0;
-		rfidDataExists = false;
+		 // char res[13];
+		char *res = new char[13];
+		res[0] = '\0';
+		//rfidDataExists = false;
+		bool found = false;
 		while(rfid->available()) {
-			res[len++] = rfid->read();
-			  res[len] = '\0';
-			  rfidDataExists = true;
+			//printer->print(rfid->read()); // send character to serial monitor
+			found = true;
+			 res[len++] = rfid->read();
+			   res[len] = '\0';
+			  //rfidDataExists = true;
 		}	
-		if (rfidDataExists) { //send internet request
-			rfidDataExists = false;
-			// Serial.println(res);
-			return res;
-
-		}
-		return NULL;
+		//printer->println();
+		// if (rfidDataExists) { //send internet request
+		// 	rfidDataExists = false;
+		// 	return true;
+		// }
+		return res;
 }
-void Decoded::setupInternet(){
-	Serial.println("Configuring internet");
 
-	byte tempMac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-	if (Ethernet.begin(tempMac) == 0) {
-		Serial.println("Failed to configure Ethernet using DHCP");
-		for (int i = 0; i < 6; i++) {
-			digitalWrite(failPin, HIGH);
-			delay(100);
-			digitalWrite(failPin, LOW);
-			delay(100);
-		}
-	} else {
-		Serial.println("Internet configured!");
-		for (int i = 0; i < 6; i++) {
-			digitalWrite(successPin, HIGH);
-			delay(100);
-			digitalWrite(successPin, LOW);
-			delay(100);
-		}
+  void Decoded::setupInternet(){
+  if (Ethernet.begin(mac) == 0) {
+    printer->println("Failed to configure Ethernet using DHCP");
+    // no point in carrying on, so do nothing forevermore:
+    // try to congifure using IP address instead of DHCP:
+    Ethernet.begin(mac, ip);
+  }
+  // give the Ethernet shield a second to initialize:
+  delay(1000);
+  printer->println("connected to internet");
+}
+
+void Decoded::hitTriggerUrl(char url[], char *value, uint8_t count){
+	
+	if (count > 5) {
+		count = 0;
+		ledOn(failPin);
+	    delay(1000);
+	    ledOff(failPin);
+		return;
 	}
-	delay(1000); //give the ethernet a second to sort itself out....
-}
+	setupInternet();
+		// if you get a connection, report back via serial:
+  if (client.connect(server, 80)) {
+    printer->println("connected");
+    // Make a HTTP request:
+    client.print("GET ");
+    client.print(url);
+    client.print(value);
+    // client.print(value);
+    client.println(" HTTP/1.0");
+    client.println("Host: www.oliverrees.co.uk");
+    client.println("Connection: close");
+    client.println();
+    printer->println("finished...");
+    client.stop();
+  } 
+  else {
+    printer->println("connection failed");
+    hitTriggerUrl(url, value, ++count);
 
-void Decoded::hitTriggerUrl(char getRequest[]){
-		char url[] = "futuretech.decoded.com";
-		Serial.print("connecting to "); Serial.println(url);
-		
-			if (client.connect(url, 80)) {
-				Serial.println("Connected to the network!");
-				readyToSend = true;
-			} else {
-				Serial.println("connection failed...");
-				digitalWrite(failPin, HIGH);
-				delay(800);
-				digitalWrite(failPin, LOW);
-			}
-		if (readyToSend) {
-			// client.print("GET ");
-			client.println(getRequest);
-	    	// client.print(10.1);
-	    	// client.println(" HTTP/1.1");
-	    	client.print("Host: ");
-	    	client.println(url);
-	    	client.println("Connection: close");
-	    	client.println(); //HTTP requests must end in a blank line
-	    	Serial.println("Connection made successfully");
-	    	
-	    	digitalWrite(successPin, HIGH);
-			delay(800);
-			digitalWrite(successPin, LOW);
-	 		checkStillConnected();
-	 		readyToSend = false;
-		} else {
-			Serial.println("you are not connected to the domain");
-			hitTriggerUrl(getRequest);
-			digitalWrite(failPin, HIGH);
-			delay(800);
-			digitalWrite(failPin, LOW);
-		}
+  }
+
 }
 void Decoded::recoverData() {
+	printer->println("recovering...");
 	while (client.available()) {
 		char c = client.read();
-		Serial.print(c);
+		printer->print(c);
 	}
 }
 
@@ -152,15 +240,17 @@ void Decoded::checkStillConnected() {
 		client.stop();
 	}
 }
-void Decoded::setValue(float f) {
+char *Decoded::setValue(float f) {
+	value = new char[20];
 	sprintf(value, "%f", f);
+	return value;
 }
-void Decoded::setValue(int d) {
-	sprintf(value, "%d", d);
-}
-void Decoded::setValue(char * c) {
-	value = c;
-}
+// void Decoded::setValue(int d) {
+// 	sprintf(value, "%d", d);
+// }
+// void Decoded::setValue(char * c) {
+// 	value = c;
+// }
 // Device Decoded::addAnalogInput(bool pin){
 // 	Device d(pin, Input, Analog);
 // 	return d;
