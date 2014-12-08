@@ -6,7 +6,7 @@
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xAF };
 String server = "futuretech.decoded.com";
 // IPAddress server(54,217,228,120);
-IPAddress ip(172,16,0,177);
+//IPAddress ip(172,16,0,random(50, 200));
 EthernetClient client;
 SoftwareSerial *rfid;
 String value;
@@ -187,7 +187,7 @@ String Decoded::checkForRFID(){
     printer->println("Failed to configure Ethernet using DHCP");
     // no point in carrying on, so do nothing forevermore:
     // try to congifure using IP address instead of DHCP:
-    Ethernet.begin(mac, ip);
+   // Ethernet.begin(mac, ip);
     // setupInternet();
   }
   // give the Ethernet shield a second to initialize:
@@ -225,6 +225,7 @@ void Decoded::hitTriggerUrl(String url, String value, uint8_t count){
     client.println("Host: "+server);
     client.println("Connection: close");
     client.println();
+    delay(500);
     printer->println("finished...");
     
   } 
@@ -233,9 +234,7 @@ void Decoded::hitTriggerUrl(String url, String value, uint8_t count){
     hitTriggerUrl(url, value, ++count);
 
   }
-  if (!client.connected()) {
 		client.stop();
-	}
 
 }
 void Decoded::recoverData() {
