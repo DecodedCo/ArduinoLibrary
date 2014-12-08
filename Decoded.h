@@ -42,7 +42,7 @@ class Decoded
     void setServo(uint8_t pin, uint8_t angle);
     */
     void setupInternet();
-    void hitTriggerUrl(char url[], char *value, uint8_t count = 0);
+    void hitTriggerUrl(String url, String value, uint8_t count = 0);
 
     void recoverData();
     void checkStillConnected();
@@ -67,7 +67,7 @@ class Decoded
     int readJoyStick(uint8_t x);
 
     void addRFID(uint8_t pin);
-    char *checkForRFID();
+    String checkForRFID();
 
     char *setValue(float f);
     void setValue(uint8_t d);

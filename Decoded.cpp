@@ -3,13 +3,13 @@
 #include "Decoded.h"
 #define DHTTYPE DHT11 
 
-byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-char server[] = "www.oliverrees.co.uk";
+byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xAF };
+String server = "futuretech.decoded.com";
 // IPAddress server(54,217,228,120);
-IPAddress ip(192,168,0,177);
+IPAddress ip(172,16,0,177);
 EthernetClient client;
 SoftwareSerial *rfid;
-char *value;
+String value;
 /* Decoded library for controlling external peripherals for TiaD */
 Decoded::Decoded(HardwareSerial &print, uint8_t failLed) : failPin(failLed) {
 	// readyToSend = false;
@@ -160,19 +160,17 @@ void Decoded::addRFID(uint8_t pin){
 	printer->println("RFID configured");
 }
 
-char *Decoded::checkForRFID(){
+String Decoded::checkForRFID(){
 
 		int8_t len = 0;
 		 // char res[13];
-		char *res = new char[13];
-		res[0] = '\0';
+		String res;
 		//rfidDataExists = false;
 		bool found = false;
 		while(rfid->available()) {
 			//printer->print(rfid->read()); // send character to serial monitor
 			found = true;
-			 res[len++] = rfid->read();
-			   res[len] = '\0';
+			 res += rfid->read();
 			  //rfidDataExists = true;
 		}	
 		//printer->println();
@@ -180,6 +178,7 @@ char *Decoded::checkForRFID(){
 		// 	rfidDataExists = false;
 		// 	return true;
 		// }
+
 		return res;
 }
 
@@ -189,14 +188,23 @@ char *Decoded::checkForRFID(){
     // no point in carrying on, so do nothing forevermore:
     // try to congifure using IP address instead of DHCP:
     Ethernet.begin(mac, ip);
+    // setupInternet();
   }
   // give the Ethernet shield a second to initialize:
   delay(1000);
   printer->println("connected to internet");
 }
 
-void Decoded::hitTriggerUrl(char url[], char *value, uint8_t count){
+void Decoded::hitTriggerUrl(String url, String value, uint8_t count){
 	
+	String s = "GET " + url + value + " HTTP/1.1";
+	
+	
+	char serverPointer[23];
+    server.toCharArray(serverPointer, sizeof(serverPointer));
+    char urlPointer[s.length()+1];
+    s.toCharArray(urlPointer, sizeof(urlPointer));
+
 	if (count > 5) {
 		count = 0;
 		ledOn(failPin);
@@ -204,27 +212,30 @@ void Decoded::hitTriggerUrl(char url[], char *value, uint8_t count){
 	    ledOff(failPin);
 		return;
 	}
-	setupInternet();
+	printer->print("string: ");
+	Serial.println(serverPointer);
+	
 		// if you get a connection, report back via serial:
-  if (client.connect(server, 80)) {
+  if (client.connect(serverPointer, 80)) {
     printer->println("connected");
     // Make a HTTP request:
-    client.print("GET ");
-    client.print(url);
-    client.print(value);
-    // client.print(value);
-    client.println(" HTTP/1.0");
-    client.println("Host: www.oliverrees.co.uk");
+    // printer->print("URL: ");
+    // printer->println(urlPointer);
+    client.println(urlPointer);
+    client.println("Host: "+server);
     client.println("Connection: close");
     client.println();
     printer->println("finished...");
-    client.stop();
+    
   } 
   else {
     printer->println("connection failed");
     hitTriggerUrl(url, value, ++count);
 
   }
+  if (!client.connected()) {
+		client.stop();
+	}
 
 }
 void Decoded::recoverData() {
@@ -240,11 +251,11 @@ void Decoded::checkStillConnected() {
 		client.stop();
 	}
 }
-char *Decoded::setValue(float f) {
-	value = new char[20];
-	sprintf(value, "%f", f);
-	return value;
-}
+// char *Decoded::setValue(float f) {
+// 	value = new char[20];
+// 	sprintf(value, "%f", f);
+// 	return value;
+// }
 // void Decoded::setValue(int d) {
 // 	sprintf(value, "%d", d);
 // }
