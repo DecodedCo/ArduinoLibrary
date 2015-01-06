@@ -1,5 +1,7 @@
 /*
-Decoded.cpp Created by Alex Walker 2014
+Decoded.cpp 
+Author: Alex Walker
+(c) Decoded ltd 2014
 */
 
 #ifndef DECODED_H
@@ -21,12 +23,10 @@ A simple library to abstract away the low level arduino stuff that we dont want 
 */
 
 
-
-
 class Decoded
 {
   public:
-    Decoded(HardwareSerial &print, uint8_t failLed);
+    Decoded(HardwareSerial &print, byte computer);
     
     void addLed(uint8_t pin);
     void ledOn(uint8_t pin);
@@ -35,9 +35,8 @@ class Decoded
     
     void addButton(uint8_t pin);
     bool isButtonPressed(uint8_t pin);
+    bool checkPotentiometer(uint8_t pin, int tolerance);
     /*
-    uint8_t readPotentiometer(uint8_t pin, uint8_t min, uint8_t max);
-    
     void addServo(uint8_t pin);
     void setServo(uint8_t pin, uint8_t angle);
     */
@@ -52,9 +51,10 @@ class Decoded
     bool checkCelsius(float tolerance);
     float getFarenheit();
     float getHumidity();
+    bool checkHumidity(float tolerance);
 
-    int readFlameSensor(uint8_t flamePin);
-    bool checkFlameSensor(uint8_t flamePin, int tolerance);
+    int readSoundSensor(uint8_t soundPin);
+    bool checkSoundSensor(uint8_t soundPin, int tolerance);
 
     bool checkTouchSensor(uint8_t touchPin, int tolerance);
     int readTouchSensor(uint8_t touchPin);
@@ -64,7 +64,7 @@ class Decoded
     void addTiltSensor(uint8_t tiltPin);
     bool checkIfTilted(uint8_t tiltPin);
 
-    int readJoyStick(uint8_t x);
+    bool readJoyStick(uint8_t x, int tolerance);
 
     void addRFID(uint8_t pin);
     String checkForRFID();
@@ -96,8 +96,11 @@ class Decoded
     // IPAddress ip;
     // bool readyToSend;
     bool temperatureSent;
-    bool flameSent;
+    bool joySent;
+    bool humiditySent;
+    bool soundSent;
     bool touchSent;
+    bool potSent;
     DHT *dht;
     // SoftwareSerial *rfid;
 };

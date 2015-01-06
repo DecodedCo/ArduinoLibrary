@@ -1,9 +1,14 @@
-
+/*
+Decoded.cpp 
+Author: Alex Walker
+(c) Decoded ltd 2014
+*/
 
 #include "Decoded.h"
 #define DHTTYPE DHT11 
 
-byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xAF };
+byte mac[6];
+
 String server = "futuretech.decoded.com";
 // IPAddress server(54,217,228,120);
 //IPAddress ip(172,16,0,random(50, 200));
@@ -11,7 +16,13 @@ EthernetClient client;
 SoftwareSerial *rfid;
 String value;
 /* Decoded library for controlling external peripherals for TiaD */
-Decoded::Decoded(HardwareSerial &print, uint8_t failLed) : failPin(failLed) {
+Decoded::Decoded(HardwareSerial &print, byte computer) : failPin(7) {
+	mac[0] = 0xDE;
+	mac[1] = 0xAD;
+	mac[2] = 0xBE;
+	mac[3] = 0xEF;
+	mac[4] = 0xFE;
+	mac[5] = computer;
 	// readyToSend = false;
 	// res = new char[13];
 	// successPin = 8;
@@ -23,6 +34,12 @@ Decoded::Decoded(HardwareSerial &print, uint8_t failLed) : failPin(failLed) {
 	// value = "";
 	printer = &print; //operate on the adress of print
 	temperatureSent = false;
+
+    joySent = false;
+    humiditySent = false;
+    soundSent = false;
+    touchSent = false;
+    potSent = false;
      // printer->begin(9600);
 }
 
@@ -56,19 +73,19 @@ bool Decoded::isButtonPressed(uint8_t pin){ //is it boolean or bool???
 	
 	return (digitalRead(pin) == HIGH) ? true : false;
 }
-int Decoded::readFlameSensor(uint8_t flamePin) {
-	return analogRead(flamePin);
+int Decoded::readSoundSensor(uint8_t soundPin) {
+	return analogRead(soundPin);
 }
-bool Decoded::checkFlameSensor(uint8_t flamePin, int tolerance) {
-	if (analogRead(flamePin) < tolerance) {
-		flameSent = false;
+bool Decoded::checkSoundSensor(uint8_t soundPin, int tolerance) {
+	if (analogRead(soundPin) < tolerance) {
+		soundSent = false;
 	}
-	if (flameSent) {
+	if (soundSent) {
 		return false;
 	}
-	if (analogRead(flamePin) > tolerance) {
-		printer->println("flame TRUE");
-		flameSent = true;
+	if (analogRead(soundSent) > tolerance) {
+		printer->println("sound TRUE");
+		soundSent = true;
 		return true;
 	}
 	return false;
@@ -117,8 +134,19 @@ bool Decoded::checkIfTilted(uint8_t tiltPin) {
 	}
 	return false;
 }
-int Decoded::readJoyStick(uint8_t x) {
-	return analogRead(x);
+bool Decoded::readJoyStick(uint8_t x, int tolerance) {
+	if (analogRead(x) < tolerance) {
+		joySent = false;
+	}
+	if (joySent) {
+		return false;
+	}
+	if (analogRead(x) > tolerance) {
+		joySent = true;
+		printer->println("joy check TRUE");
+		return true;
+	}
+	return false;
 }
 void Decoded::addTemperatureAndHumidity(uint8_t pin) {
 	dht = new DHT(pin, DHTTYPE);
@@ -142,17 +170,43 @@ bool Decoded::checkCelsius(float tolerance) {
 	return false;
 
 }
+bool Decoded::checkHumidity(float tolerance) {
+	if (dht->readHumidity() < tolerance) {
+		humiditySent = false;
+	}
+	if (humiditySent) {
+		return false;
+	}
+	if (dht->readHumidity() > tolerance) {
+		humiditySent = true;
+		printer->println("temperature check TRUE");
+		return true;
+	}
+	return false;
+
+}
 float Decoded::getFarenheit(){
 	return dht->readTemperature(true);
 }
 float Decoded::getHumidity(){
 	dht->readHumidity();
 }
-/*
-int Decoded::readPotentiometer(int pin, int min, int max) { //return a value between 0 and 180 (servo angles)
-  return map(analogRead(knobPin), 0, 1023, min, max); 
+
+bool Decoded::checkPotentiometer(uint8_t pin, int tolerance) { //return a value between 0 and 180 (servo angles)
+  if (analogRead(pin) < tolerance) {
+		potSent = false;
+	}
+	if (potSent) {
+		return false;
+	}
+	if (analogRead(pin) > tolerance) {
+		potSent = true;
+		printer->println("pot check TRUE");
+		return true;
+	}
+	return false; 
 }
-*/
+
 
 void Decoded::addRFID(uint8_t pin){
 	rfid = new SoftwareSerial(pin, 100);
@@ -168,7 +222,7 @@ String Decoded::checkForRFID(){
 		//rfidDataExists = false;
 		bool found = false;
 		while(rfid->available()) {
-			//printer->print(rfid->read()); // send character to serial monitor
+			// printer->print(rfid->read()); // send character to serial monitor
 			found = true;
 			 res += rfid->read();
 			  //rfidDataExists = true;
@@ -212,8 +266,7 @@ void Decoded::hitTriggerUrl(String url, String value, uint8_t count){
 	    ledOff(failPin);
 		return;
 	}
-	printer->print("string: ");
-	Serial.println(serverPointer);
+	printer->println("Attempting connection");
 	
 		// if you get a connection, report back via serial:
   if (client.connect(serverPointer, 80)) {
