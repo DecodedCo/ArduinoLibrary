@@ -101,6 +101,8 @@ class Decoded
     bool soundSent;
     bool touchSent;
     bool potSent;
+    // bool for storing tilt sensor state to enable comparison to see if changed
+    bool tiltState;
     DHT *dht;
     // SoftwareSerial *rfid;
 };
