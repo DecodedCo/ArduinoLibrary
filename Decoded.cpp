@@ -241,9 +241,11 @@ String Decoded::checkForRFID(){
 		while(rfid->available()) {
 			// printer->print(rfid->read()); // send character to serial monitor
 			found = true;
-			 res += rfid->read();
-			  //rfidDataExists = true;
-		}	
+			res += rfid->read();
+			//rfidDataExists = true;
+		}
+		// remove newline chars
+		res.replace('\n', '');	
 		//printer->println();
 		// if (rfidDataExists) { //send internet request
 		// 	rfidDataExists = false;
