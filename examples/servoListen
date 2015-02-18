@@ -1,0 +1,18 @@
+#include <Servo.h>
+
+Servo servo;
+
+void setup() {                
+  Serial.begin(9600);
+  servo.attach(9, 544, 2400);
+}
+
+void loop() {
+  if (Serial.available()) {
+    int amt = Serial.parseInt();
+    if (20 <= amt && amt <= 160) {
+      Serial.println(amt);
+      servo.write(amt);
+    }
+  }
+}
