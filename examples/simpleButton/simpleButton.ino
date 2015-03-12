@@ -18,7 +18,7 @@ void setup()
 void loop()
 {
     if (decoded.isButtonPressed(buttonPin)) {
-      Serial.println("url");
+      Serial.println(url);
       Serial.println("button pressed");
       String checkChar = "ALERT";
     }
