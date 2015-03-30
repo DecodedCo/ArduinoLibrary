@@ -1,7 +1,5 @@
 //this is your specific end point.
-String url= "/api/?uid=[YOUR IDENTIFIER]&trigger=t8myh&value=";  
-//this is to identify your computer
-byte computer = 0xAD; //change to your choice...
+String url= "|/api/?uid=[YOUR IDENTIFIER]&trigger=t8myh&value=";  
 //this is the object that handles all communication with the arduino
 Decoded decoded(Serial, computer);
 
@@ -21,6 +19,7 @@ void loop()
       Serial.println("btn prssd");
       String checkChar = "ALERT";
       decoded.hitTriggerUrl(url, checkChar);
+      delay(250);
     }
-  delay(250);
+  
 }
