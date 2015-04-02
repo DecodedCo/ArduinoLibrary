@@ -127,13 +127,30 @@ bool Decoded::checkKnockSensor(uint8_t knockPin, int tolerance) {
 
 void Decoded::addTiltSensor(uint8_t tiltPin) {
 	pinMode(tiltPin, INPUT);
+	// initialise tiltState variable
+	tiltState = Decoded::checkTiltState(tiltPin);
 }
-bool Decoded::checkIfTilted(uint8_t tiltPin) {
+
+bool Decoded::checkTiltState(uint8_t tiltPin) {
 	if (digitalRead(tiltPin) == HIGH) {
 		return true;
 	}
 	return false;
 }
+
+bool Decoded::checkIfTilted(uint8_t tiltPin) {
+	// check if tilt sensor has moved by
+	// comparing current position to last recorded position
+	bool currentState = Decoded::checkTiltState(tiltPin);
+	if (currentState == tiltState) {
+		return false;
+	}
+	else {
+		tiltState = currentState;
+		return true;
+	}
+}
+
 bool Decoded::readJoyStick(uint8_t x, int tolerance) {
 	if (analogRead(x) < tolerance) {
 		joySent = false;
@@ -224,9 +241,11 @@ String Decoded::checkForRFID(){
 		while(rfid->available()) {
 			// printer->print(rfid->read()); // send character to serial monitor
 			found = true;
-			 res += rfid->read();
-			  //rfidDataExists = true;
-		}	
+			res += rfid->read();
+			//rfidDataExists = true;
+		}
+		// remove newline chars
+		res.replace('\n', '');	
 		//printer->println();
 		// if (rfidDataExists) { //send internet request
 		// 	rfidDataExists = false;
